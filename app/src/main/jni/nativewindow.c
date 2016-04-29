@@ -38,4 +38,26 @@ JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_ndkdraw
 	return;
 }
 
+JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_toYV12
+(JNIEnv * env, jobject thiz, jintArray srcarray, jbyteArray dstarray,jint w,jint h) {
+	unsigned int *src = (unsigned int*)(*env)->GetIntArrayElements(env,srcarray, 0);
+	unsigned char *dst = (unsigned char*)(*env)->GetByteArrayElements(env,dstarray, 0);
+	int ySize=w*h;
+	int uvSize=ySize>>1;
+	int uSize = uvSize>>1;
+	int i=0;
+	unsigned int *srcycur = src;
+    unsigned char *dstycur = dst;
+	while(i<ySize)
+	{
+		(*dstycur)=(unsigned char)((*srcycur)&0xFF);
+		++dstycur;
+		++srcycur;
+		++i;
+	}
+	(*env)->ReleaseIntArrayElements(env,srcarray,src,JNI_ABORT);
+	(*env)->ReleaseByteArrayElements(env,dstarray,dst,JNI_ABORT);
+	return;
+}
+
 #endif

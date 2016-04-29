@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     TextureView txv_image;
     SurfaceView sv_image;
     GLRenderThread glRenderThread;
+    Surface mSurface;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +45,8 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         startCamera();
-        glRenderThread = new GLRenderThread(this, surface);
+        mSurface = new Surface(surface);
+        glRenderThread = new GLRenderThread(mSurface,this);
         glRenderThread.setWH(width, height);
         glRenderThread.start();
     }
@@ -121,5 +123,6 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         System.loadLibrary("nativewindow");
     }
 
-    private static native void ndkdraw(Surface surface, byte[] pixels, int w, int h, int s);
+    public static native void ndkdraw(Surface surface, byte[] pixels, int w, int h, int s);
+    public static native void toYV12(int[] src, byte[] dst, int w, int h);
 }

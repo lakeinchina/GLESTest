@@ -16,7 +16,7 @@ void main()
       float l = length(pos);
 
       if (l > 1.0) {
-        gl_FragColor = vec4(0, 0, 0, 1);
+        gl_FragColor = vec4(0,0,0,1);
       }
       else {
         float x = maxFactor * pos.x;
@@ -28,10 +28,8 @@ void main()
         float u = r * cos(phi) + 0.5;
         float v = r * sin(phi) + 0.5;
         yuv.x = texture2D(samplerY,vec2(u,v)).r;
-        yuv.y = texture2D(samplerU,vec2(u,v)).r - 0.5;
-        yuv.z = texture2D(samplerV,vec2(u,v)).r - 0.5;
-        rgb = mat3(1,1,1,0,-0.39465,2.03211,1.13983,-0.5806,0)*yuv;
-        rgb.r*=1.5;
-        gl_FragColor = vec4(rgb,1);
+        yuv.y = texture2D(samplerU,vec2(u,v)).r;
+        yuv.z = texture2D(samplerV,vec2(u,v)).r;
+        gl_FragColor = vec4(yuv,1);
     }
 }

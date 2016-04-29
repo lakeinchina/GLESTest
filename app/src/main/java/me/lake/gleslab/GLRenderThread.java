@@ -6,12 +6,15 @@ import android.opengl.EGL14;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
+import android.view.Surface;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 
+import javax.microedition.khronos.egl.EGL;
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
@@ -30,19 +33,21 @@ public class GLRenderThread extends Thread {
     int mProgram;
 
 
-    SurfaceTexture mSurfaceTexture;
     Context mContext;
     boolean quit;
     int mWidth = 1280;
     int mHeight = 720;
     int ySize = mWidth * mHeight;
+    int size = ySize + (ySize >> 1);
 
     int sw, sh;
     private final Object syncThread = new Object();
+    private Surface mSurface;
+    private byte[] yuvpix = new byte[size];
 
-    public GLRenderThread(Context context, SurfaceTexture surfaceTexture) {
-        mSurfaceTexture = surfaceTexture;
+    public GLRenderThread(Surface surface, Context context) {
         mContext = context;
+        mSurface = surface;
         quit = false;
         yBuf = ByteBuffer.allocateDirect(ySize);
         uBuf = ByteBuffer.allocateDirect(ySize >> 2);
@@ -89,6 +94,7 @@ public class GLRenderThread extends Thread {
         int configsCount[] = new int[1];
         EGLConfig configs[] = new EGLConfig[1];
         int configSpec[] = new int[]{
+                EGL10.EGL_SURFACE_TYPE, EGL10.EGL_PBUFFER_BIT,
                 EGL10.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
                 EGL10.EGL_RED_SIZE, 8,
                 EGL10.EGL_GREEN_SIZE, 8,
@@ -102,7 +108,13 @@ public class GLRenderThread extends Thread {
             throw new RuntimeException("eglChooseConfig,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
         mEglConfig = configs[0];
-        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mSurfaceTexture, null);
+        int attr[] = new int[]{
+                EGL10.EGL_WIDTH, mWidth,
+                EGL10.EGL_HEIGHT, mHeight,
+                EGL10.EGL_LARGEST_PBUFFER,EGL14.EGL_TRUE,
+                EGL10.EGL_NONE
+        };
+        mEglSurface = mEgl.eglCreatePbufferSurface(mEglDisplay, mEglConfig, attr);
         if (null == mEglSurface || EGL10.EGL_NO_SURFACE == mEglSurface) {
             throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
@@ -178,7 +190,6 @@ public class GLRenderThread extends Thread {
     }
 
     private void drawFrame() {
-        GLES20.glViewport(0, 0, sw, sh);
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
@@ -242,10 +253,17 @@ public class GLRenderThread extends Thread {
              * 绘制
              */
             drawFrame();
-            if (!mEgl.eglSwapBuffers(mEglDisplay, mEglSurface)) {
-                throw new RuntimeException("eglSwapBuffers,failed!");
-            }
-            Log.e("aa", "drawFrame");
+            final IntBuffer pixelBuffer = IntBuffer.allocate(mWidth * mHeight);
+            pixelBuffer.position(0);
+            long a=System.currentTimeMillis();
+            /**
+             * toslow
+             */
+            GLES20.glReadPixels(0, 0, mWidth, mHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
+            Log.e("aa", "ttttttt="+(System.currentTimeMillis()-a));
+            int[] pixelArray = pixelBuffer.array();
+            MainActivity.toYV12(pixelArray,yuvpix,mWidth,mHeight);
+            MainActivity.ndkdraw(mSurface, yuvpix, mWidth, mHeight, size);
             synchronized (syncThread) {
                 try {
                     syncThread.wait();
