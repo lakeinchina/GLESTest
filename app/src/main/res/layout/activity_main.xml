@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="me.lake.gleslab.MainActivity">
+
+    <TextureView
+        android:id="@+id/txv_image"
+        android:layout_width="175dp"
+        android:layout_height="350dp"
+        android:layout_marginLeft="87.5dp"
+        android:layout_marginTop="-87.5dp"
+        android:rotation="270" />
+
+    <SurfaceView
+        android:id="@+id/sv_image"
+        android:layout_width="350dp"
+        android:layout_height="175dp"
+        android:layout_alignParentRight="true" />
+
+</RelativeLayout>
