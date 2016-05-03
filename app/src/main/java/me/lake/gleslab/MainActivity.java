@@ -124,5 +124,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     }
 
     public static native void ndkdraw(Surface surface, byte[] pixels, int w, int h, int s);
-    public static native void toYV12(int[] src, byte[] dst, int w, int h);
+    public static native void toYV12(byte[] src, byte[] dst, int w, int h);
+
+    public static native void readPixel(int foramt,int type,int offset);
 }

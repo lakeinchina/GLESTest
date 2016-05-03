@@ -1,20 +1,20 @@
 package me.lake.gleslab;
 
 import android.content.Context;
-import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
 import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.GLUtils;
 import android.util.Log;
 import android.view.Surface;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 
-import javax.microedition.khronos.egl.EGL;
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLContext;
@@ -150,85 +150,93 @@ public class GLRenderThread extends Thread {
     }
 
     private void createTexture(int width, int height, int format, int[] texture) {
-        GLES20.glGenTextures(1, texture, 0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture[0]);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, format, width, height, 0, format, GLES20.GL_UNSIGNED_BYTE, null);
+        GLES30.glGenTextures(1, texture, 0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture[0]);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, format, width, height, 0, format, GLES30.GL_UNSIGNED_BYTE, null);
     }
 
     private void initTexture() {
-        GLES20.glEnable(GLES20.GL_TEXTURE_2D);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
+        GLES30.glEnable(GLES30.GL_TEXTURE_2D);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE2);
 
-        createTexture(mWidth, mHeight, GLES20.GL_LUMINANCE, yTexture);
-        createTexture(mWidth >> 1, mHeight >> 1, GLES20.GL_LUMINANCE, uTexture);
-        createTexture(mWidth >> 1, mHeight >> 1, GLES20.GL_LUMINANCE, vTexture);
+        createTexture(mWidth, mHeight, GLES30.GL_LUMINANCE, yTexture);
+        createTexture(mWidth >> 1, mHeight >> 1, GLES30.GL_LUMINANCE, uTexture);
+        createTexture(mWidth >> 1, mHeight >> 1, GLES30.GL_LUMINANCE, vTexture);
 
-        GLES20.glUseProgram(mProgram);
-        sampleYLoaction = GLES20.glGetUniformLocation(mProgram, "samplerY");
-        sampleULoaction = GLES20.glGetUniformLocation(mProgram, "samplerU");
-        sampleVLoaction = GLES20.glGetUniformLocation(mProgram, "samplerV");
-        GLES20.glUniform1i(sampleYLoaction, 0);
-        GLES20.glUniform1i(sampleULoaction, 1);
-        GLES20.glUniform1i(sampleVLoaction, 2);
-        int aPostionLocation = GLES20.glGetAttribLocation(mProgram, "aPosition");
-        int aTextureCoordLocation = GLES20.glGetAttribLocation(mProgram, "aTextureCoord");
-        GLES20.glEnableVertexAttribArray(aPostionLocation);
-        GLES20.glVertexAttribPointer(aPostionLocation, COORDS_PER_VERTEX,
-                GLES20.GL_FLOAT, false,
+        GLES30.glUseProgram(mProgram);
+        sampleYLoaction = GLES30.glGetUniformLocation(mProgram, "samplerY");
+        sampleULoaction = GLES30.glGetUniformLocation(mProgram, "samplerU");
+        sampleVLoaction = GLES30.glGetUniformLocation(mProgram, "samplerV");
+        GLES30.glUniform1i(sampleYLoaction, 0);
+        GLES30.glUniform1i(sampleULoaction, 1);
+        GLES30.glUniform1i(sampleVLoaction, 2);
+        int aPostionLocation = GLES30.glGetAttribLocation(mProgram, "aPosition");
+        int aTextureCoordLocation = GLES30.glGetAttribLocation(mProgram, "aTextureCoord");
+        GLES30.glEnableVertexAttribArray(aPostionLocation);
+        GLES30.glVertexAttribPointer(aPostionLocation, COORDS_PER_VERTEX,
+                GLES30.GL_FLOAT, false,
                 COORDS_PER_VERTEX * 4, mSquareVerticesBuffer);
-        GLES20.glEnableVertexAttribArray(aTextureCoordLocation);
-        GLES20.glVertexAttribPointer(aTextureCoordLocation, TEXTURE_COORS_PER_VERTEX,
-                GLES20.GL_FLOAT, false,
+        GLES30.glEnableVertexAttribArray(aTextureCoordLocation);
+        GLES30.glVertexAttribPointer(aTextureCoordLocation, TEXTURE_COORS_PER_VERTEX,
+                GLES30.GL_FLOAT, false,
                 TEXTURE_COORS_PER_VERTEX * 4, mTextureVerticesBuffer);
 
     }
 
     private void drawFrame() {
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+        GLES30.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
 
-        GLES20.glUseProgram(mProgram);
+        GLES30.glUseProgram(mProgram);
 
         //=================================
         synchronized (syncBuff) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, yTexture[0]);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, yTexture[0]);
+            GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, 0,
                     mWidth,
                     mHeight,
-                    GLES20.GL_LUMINANCE,
-                    GLES20.GL_UNSIGNED_BYTE,
+                    GLES30.GL_LUMINANCE,
+                    GLES30.GL_UNSIGNED_BYTE,
                     yBuf);
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, uTexture[0]);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE1);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, uTexture[0]);
+            GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, 0,
                     mWidth >> 1,
                     mHeight >> 1,
-                    GLES20.GL_LUMINANCE,
-                    GLES20.GL_UNSIGNED_BYTE,
+                    GLES30.GL_LUMINANCE,
+                    GLES30.GL_UNSIGNED_BYTE,
                     uBuf);
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, vTexture[0]);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE2);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, vTexture[0]);
+            GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, 0,
                     mWidth >> 1,
                     mHeight >> 1,
-                    GLES20.GL_LUMINANCE,
-                    GLES20.GL_UNSIGNED_BYTE,
+                    GLES30.GL_LUMINANCE,
+                    GLES30.GL_UNSIGNED_BYTE,
                     vBuf);
 
         }
         //=================================
-        GLES20.glDrawElements(GLES20.GL_TRIANGLES, drawIndices.length, GLES20.GL_UNSIGNED_SHORT, mDrawIndicesBuffer);
-        GLES20.glFinish();
-//        GLES20.glDisableVertexAttribArray(aPostionLocation);
-//        GLES20.glDisableVertexAttribArray(aTextureCoordLocation);
+        GLES30.glGenBuffers(1,i);
+        pbo = i.array()[0];
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,pbo);
+        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER,ySize,null,GLES30.GL_DYNAMIC_READ);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,0);
+
+        GLES30.glDrawElements(GLES30.GL_TRIANGLES, drawIndices.length, GLES30.GL_UNSIGNED_SHORT, mDrawIndicesBuffer);
+        GLES30.glFinish();
+//        GLES30.glDisableVertexAttribArray(aPostionLocation);
+//        GLES30.glDisableVertexAttribArray(aTextureCoordLocation);
     }
+    IntBuffer i = IntBuffer.allocate(1);
+    int pbo = i.array()[0];
 
     @Override
     public void run() {
@@ -248,22 +256,36 @@ public class GLRenderThread extends Thread {
          * 创建YUV纹理
          */
         initTexture();
+        IntBuffer i = IntBuffer.allocate(1);
+        GLES30.glGenBuffers(1,i);
+        int pbo = i.array()[0];
+        ByteBuffer intb = ByteBuffer.allocateDirect(4*ySize);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,pbo);
+        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER,4*ySize,null,GLES30.GL_DYNAMIC_READ);
         while (!quit) {
             /**
              * 绘制
              */
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,0);
             drawFrame();
             final IntBuffer pixelBuffer = IntBuffer.allocate(mWidth * mHeight);
             pixelBuffer.position(0);
-            long a=System.currentTimeMillis();
             /**
-             * toslow
+             * ~30ms
              */
-            GLES20.glReadPixels(0, 0, mWidth, mHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
+            GLES30.glReadBuffer(GLES30.GL_COLOR_ATTACHMENT0);
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,pbo);
+            MainActivity.readPixel(GLES20.GL_RGBA,GLES30.GL_UNSIGNED_BYTE,0);
+            Buffer buf = GLES30.glMapBufferRange(GLES30.GL_PIXEL_PACK_BUFFER,0,4*ySize,GLES30.GL_MAP_READ_BIT);
+            long a=System.currentTimeMillis();
+            ByteBuffer b = ((ByteBuffer)buf).order(ByteOrder.nativeOrder());
+            byte[] pixelArray = new byte[4*ySize];
+            b.get(pixelArray,0,4*ySize);
             Log.e("aa", "ttttttt="+(System.currentTimeMillis()-a));
-            int[] pixelArray = pixelBuffer.array();
-            MainActivity.toYV12(pixelArray,yuvpix,mWidth,mHeight);
-            MainActivity.ndkdraw(mSurface, yuvpix, mWidth, mHeight, size);
+            MainActivity.toYV12(pixelArray,yuvpix,  mWidth,  mHeight);
+            MainActivity.ndkdraw( mSurface,yuvpix, mWidth, mHeight, size);
+            GLES30.glUnmapBuffer(GLES30.GL_PIXEL_PACK_BUFFER);
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
             synchronized (syncThread) {
                 try {
                     syncThread.wait();

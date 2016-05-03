@@ -4,6 +4,7 @@
 #include <jni.h>
 #include <log.h>
 #include <string.h>
+#include <GLES3/gl3.h>
 #include <android/native_window_jni.h>
 #define LOG_TAG "nativewindow"
 
@@ -39,25 +40,58 @@ JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_ndkdraw
 }
 
 JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_toYV12
-(JNIEnv * env, jobject thiz, jintArray srcarray, jbyteArray dstarray,jint w,jint h) {
-	unsigned int *src = (unsigned int*)(*env)->GetIntArrayElements(env,srcarray, 0);
+(JNIEnv * env, jobject thiz, jbyteArray srcarray, jbyteArray dstarray,jint w,jint h) {
+	unsigned char *src = (unsigned char*)(*env)->GetByteArrayElements(env,srcarray, 0);
 	unsigned char *dst = (unsigned char*)(*env)->GetByteArrayElements(env,dstarray, 0);
 	int ySize=w*h;
 	int uvSize=ySize>>1;
 	int uSize = uvSize>>1;
 	int i=0;
-	unsigned int *srcycur = src;
+	unsigned char *srcycur = src;
     unsigned char *dstycur = dst;
 	while(i<ySize)
 	{
-		(*dstycur)=(unsigned char)((*srcycur)&0xFF);
+		(*dstycur)=(*srcycur);
 		++dstycur;
-		++srcycur;
+		srcycur+=4;
 		++i;
 	}
-	(*env)->ReleaseIntArrayElements(env,srcarray,src,JNI_ABORT);
+	unsigned char *srcucur = src+1;
+    unsigned char *dstvcur = dst+ySize;
+    unsigned char *srcvcur = src+2;
+    unsigned char *dstucur = dst+ySize+uSize;
+    int y=0,x=0;
+	for(y=0;y<h;y++)
+	{
+	    if(y%2==0)//v
+	    {
+	        srcvcur = src+4*w*y+2;
+	        for(x=0;x<w;x+=2)
+	        {
+	            (*dstvcur)=(*srcvcur);
+	            srcvcur+=8;
+	            ++dstvcur;
+	        }
+	    }else//u
+	    {
+	        srcucur = src+4*w*y+1;
+	        for(x=0;x<w;x+=2)
+	        {
+	            (*dstucur)=(*srcucur);
+	            srcucur+=8;
+	            ++dstucur;
+	        }
+	    }
+	}
+	(*env)->ReleaseByteArrayElements(env,srcarray,src,JNI_ABORT);
 	(*env)->ReleaseByteArrayElements(env,dstarray,dst,JNI_ABORT);
 	return;
+}
+
+JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_readPixel
+(JNIEnv *env, jobject thiz,jint f,jint t,jint offset)
+{
+	glReadPixels(0, 0, 1280, 720, f, t, offset);
 }
 
 #endif

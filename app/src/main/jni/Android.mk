@@ -8,7 +8,6 @@ LOCAL_INCLUDE_FILES := log.h
 
 LOCAL_MODULE := nativewindow
 
-
-LOCAL_LDLIBS := -llog -ljnigraphics -landroid
+LOCAL_LDLIBS :=-llog -ljnigraphics -landroid -lGLESv3 -lEGL
 
 include $(BUILD_SHARED_LIBRARY)
