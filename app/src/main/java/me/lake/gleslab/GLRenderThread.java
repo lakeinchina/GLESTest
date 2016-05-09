@@ -2,7 +2,6 @@ package me.lake.gleslab;
 
 import android.content.Context;
 import android.opengl.EGL14;
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
 import android.util.Log;
@@ -99,6 +98,7 @@ public class GLRenderThread extends Thread {
                 EGL10.EGL_RED_SIZE, 8,
                 EGL10.EGL_GREEN_SIZE, 8,
                 EGL10.EGL_BLUE_SIZE, 8,
+                EGL10.EGL_ALPHA_SIZE,8,
                 EGL10.EGL_DEPTH_SIZE, 0,
                 EGL10.EGL_STENCIL_SIZE, 0,
                 EGL10.EGL_NONE
@@ -111,7 +111,7 @@ public class GLRenderThread extends Thread {
         int attr[] = new int[]{
                 EGL10.EGL_WIDTH, mWidth,
                 EGL10.EGL_HEIGHT, mHeight,
-                EGL10.EGL_LARGEST_PBUFFER,EGL14.EGL_TRUE,
+//                EGL10.EGL_LARGEST_PBUFFER, EGL14.EGL_TRUE,
                 EGL10.EGL_NONE
         };
         mEglSurface = mEgl.eglCreatePbufferSurface(mEglDisplay, mEglConfig, attr);
@@ -119,7 +119,7 @@ public class GLRenderThread extends Thread {
             throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
         int contextSpec[] = new int[]{
-                EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
+                EGL14.EGL_CONTEXT_CLIENT_VERSION, 3,
                 EGL14.EGL_NONE
         };
         mEglContext = mEgl.eglCreateContext(mEglDisplay, mEglConfig, EGL10.EGL_NO_CONTEXT, contextSpec);
@@ -129,6 +129,8 @@ public class GLRenderThread extends Thread {
         if (!mEgl.eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext)) {
             throw new RuntimeException("eglMakeCurrent,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
+        GLES30.glDisable(GLES30.GL_DEPTH_TEST);
+        GLES30.glDisable(GLES30.GL_CULL_FACE);
     }
 
     private void initVertex() {
@@ -190,8 +192,8 @@ public class GLRenderThread extends Thread {
     }
 
     private void drawFrame() {
-        GLES30.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
+//        GLES30.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+//        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
 
         GLES30.glUseProgram(mProgram);
 
@@ -221,22 +223,20 @@ public class GLRenderThread extends Thread {
                     GLES30.GL_LUMINANCE,
                     GLES30.GL_UNSIGNED_BYTE,
                     vBuf);
-
         }
         //=================================
-        GLES30.glGenBuffers(1,i);
-        pbo = i.array()[0];
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,pbo);
-        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER,ySize,null,GLES30.GL_DYNAMIC_READ);
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,0);
-
+//        GLES30.glGenBuffers(1, i);
+//        pbo = i.array()[0];
+//        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbo);
+//        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER, ySize, null, GLES30.GL_DYNAMIC_READ);
+//        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+        long a = System.currentTimeMillis();
         GLES30.glDrawElements(GLES30.GL_TRIANGLES, drawIndices.length, GLES30.GL_UNSIGNED_SHORT, mDrawIndicesBuffer);
         GLES30.glFinish();
+        Log.e("aa", "drawt=" + (System.currentTimeMillis() - a));
 //        GLES30.glDisableVertexAttribArray(aPostionLocation);
 //        GLES30.glDisableVertexAttribArray(aTextureCoordLocation);
     }
-    IntBuffer i = IntBuffer.allocate(1);
-    int pbo = i.array()[0];
 
     @Override
     public void run() {
@@ -257,33 +257,49 @@ public class GLRenderThread extends Thread {
          */
         initTexture();
         IntBuffer i = IntBuffer.allocate(1);
-        GLES30.glGenBuffers(1,i);
-        int pbo = i.array()[0];
-        ByteBuffer intb = ByteBuffer.allocateDirect(4*ySize);
-        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,pbo);
-        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER,4*ySize,null,GLES30.GL_DYNAMIC_READ);
+        GLES30.glGenBuffers(1, i);
+        int pbo0 = i.array()[0];
+        i = IntBuffer.allocate(1);
+        GLES30.glGenBuffers(1, i);
+        int pbo1 = i.array()[0];
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbo0);
+        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER, 4*ySize, null, GLES30.GL_DYNAMIC_READ);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbo1);
+        GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER, 4*ySize, null, GLES30.GL_DYNAMIC_READ);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
         while (!quit) {
             /**
              * 绘制
              */
-            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,0);
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
             drawFrame();
             final IntBuffer pixelBuffer = IntBuffer.allocate(mWidth * mHeight);
             pixelBuffer.position(0);
             /**
              * ~30ms
              */
-            GLES30.glReadBuffer(GLES30.GL_COLOR_ATTACHMENT0);
-            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER,pbo);
-            MainActivity.readPixel(GLES20.GL_RGBA,GLES30.GL_UNSIGNED_BYTE,0);
-            Buffer buf = GLES30.glMapBufferRange(GLES30.GL_PIXEL_PACK_BUFFER,0,4*ySize,GLES30.GL_MAP_READ_BIT);
-            long a=System.currentTimeMillis();
-            ByteBuffer b = ((ByteBuffer)buf).order(ByteOrder.nativeOrder());
+            int pw, pr;
+            if (index%2 == 0) {
+                pw = pbo0;
+                pr = pbo1;
+            } else {
+                pw = pbo1;
+                pr = pbo0;
+            }
+            index++;
+            GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT,1);
+            GLES30.glReadBuffer(GLES30.GL_BACK);
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbo0);
             byte[] pixelArray = new byte[4*ySize];
-            b.get(pixelArray,0,4*ySize);
-            Log.e("aa", "ttttttt="+(System.currentTimeMillis()-a));
-            MainActivity.toYV12(pixelArray,yuvpix,  mWidth,  mHeight);
-            MainActivity.ndkdraw( mSurface,yuvpix, mWidth, mHeight, size);
+            MainActivity.readPixel(pixelArray, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, 0);
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, pbo0);
+            Buffer buf = GLES30.glMapBufferRange(GLES30.GL_PIXEL_PACK_BUFFER, 0, 4*ySize, GLES30.GL_MAP_READ_BIT);
+            ByteBuffer b = ((ByteBuffer) buf).order(ByteOrder.nativeOrder());
+            long a = System.currentTimeMillis();
+            b.get(pixelArray, 0, 4*ySize);
+            Log.e("aa", "tttreadPixel=" + (System.currentTimeMillis() - a));
+            MainActivity.toYV12(pixelArray, yuvpix, mWidth, mHeight);
+            MainActivity.ndkdraw(mSurface, yuvpix, mWidth, mHeight, size);
             GLES30.glUnmapBuffer(GLES30.GL_PIXEL_PACK_BUFFER);
             GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
             synchronized (syncThread) {
@@ -294,6 +310,8 @@ public class GLRenderThread extends Thread {
             }
         }
     }
+
+    int index = 0;
 
     //像素Buff
     private final Object syncBuff = new Object();

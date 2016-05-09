@@ -89,9 +89,16 @@ JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_toYV12
 }
 
 JNIEXPORT void JNICALL Java_me_lake_gleslab_MainActivity_readPixel
-(JNIEnv *env, jobject thiz,jint f,jint t,jint offset)
+(JNIEnv *env, jobject thiz,jbyteArray srcarray,jint f,jint t,jint offset)
 {
+//	unsigned char *src = (unsigned char*)(*env)->GetByteArrayElements(env,srcarray, 0);
+//	unsigned char *srcc =src;
 	glReadPixels(0, 0, 1280, 720, f, t, offset);
+//	unsigned char *po = glMapBufferRange(35051,0,4*921600,1);
+//	memcpy(srcc, po, 4*921600);
+//	LOGD("po=%u",po);
+//	glUnmapBuffer(35051);
+//	(*env)->ReleaseByteArrayElements(env,srcarray,src,JNI_ABORT);
 }
 
 #endif

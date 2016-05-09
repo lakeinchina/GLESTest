@@ -107,11 +107,11 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
                 System.arraycopy(data, ySize, v, 0, uSize);
                 System.arraycopy(data, ySize + uSize, u, 0, uSize);
                 glRenderThread.queueYUV(y, u, v);
-                ndkdraw(sv_image.getHolder().getSurface(), data, w, h, data.length);
+//                ndkdraw(sv_image.getHolder().getSurface(), data, w, h, data.length);
                 camera.addCallbackBuffer(data);
             }
         });
-        cam.startPreview();
+//        cam.startPreview();
     }
 
     private void stopCamera() {
@@ -126,5 +126,5 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     public static native void ndkdraw(Surface surface, byte[] pixels, int w, int h, int s);
     public static native void toYV12(byte[] src, byte[] dst, int w, int h);
 
-    public static native void readPixel(int foramt,int type,int offset);
+    public static native void readPixel(byte[] pix,int foramt,int type,int offset);
 }
