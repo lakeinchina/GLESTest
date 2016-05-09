@@ -52,7 +52,7 @@ public class ProgramTools {
         GLES20.glCompileShader(fragmentShader);
         GLES20.glGetShaderiv(fragmentShader, GLES20.GL_COMPILE_STATUS, status, 0);
         if (GLES20.GL_FALSE == status[0]) {
-            throw new RuntimeException("fragment shader compile,failed:" + GLES20.glGetShaderInfoLog(vertexShader));
+            throw new RuntimeException("fragment shader compile,failed:" + GLES20.glGetShaderInfoLog(fragmentShader));
         }
         int program = GLES20.glCreateProgram();
         GLES20.glAttachShader(program, vertexShader);

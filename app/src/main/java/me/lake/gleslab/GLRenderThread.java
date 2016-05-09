@@ -3,6 +3,7 @@ package me.lake.gleslab;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
+import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
@@ -30,23 +31,22 @@ public class GLRenderThread extends Thread {
     int mProgram;
 
 
-    SurfaceTexture mSurfaceTexture;
+    int mCamTextureId;
+    SurfaceTexture mCamTexture;
+    SurfaceTexture mDrawTexture;
     Context mContext;
     boolean quit;
-    int mWidth = 1280;
-    int mHeight = 720;
-    int ySize = mWidth * mHeight;
 
     int sw, sh;
     private final Object syncThread = new Object();
 
-    public GLRenderThread(Context context, SurfaceTexture surfaceTexture) {
-        mSurfaceTexture = surfaceTexture;
+
+    public GLRenderThread(Context context, int camTextureId,SurfaceTexture camTexture, SurfaceTexture drawTexture) {
+        mDrawTexture = drawTexture;
+        mCamTexture = camTexture;
+        mCamTextureId = camTextureId;
         mContext = context;
         quit = false;
-        yBuf = ByteBuffer.allocateDirect(ySize);
-        uBuf = ByteBuffer.allocateDirect(ySize >> 2);
-        vBuf = ByteBuffer.allocateDirect(ySize >> 2);
     }
 
     public void quit() {
@@ -59,18 +59,9 @@ public class GLRenderThread extends Thread {
     public void setWH(int w, int h) {
         sw = w;
         sh = h;
-        Log.e("aa", "sw=" + sw + "sh" + sh);
     }
 
-    public void queueYUV(byte[] y, byte[] u, byte[] v) {
-        synchronized (syncBuff) {
-            yBuf.position(0);
-            yBuf.put(y).position(0);
-            uBuf.position(0);
-            uBuf.put(u).position(0);
-            vBuf.position(0);
-            vBuf.put(v).position(0);
-        }
+    public void queue() {
         synchronized (syncThread) {
             syncThread.notify();
         }
@@ -102,7 +93,10 @@ public class GLRenderThread extends Thread {
             throw new RuntimeException("eglChooseConfig,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
         mEglConfig = configs[0];
-        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mSurfaceTexture, null);
+        int[] surfaceAttribs = {
+                EGL14.EGL_NONE
+        };
+        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mDrawTexture, surfaceAttribs);
         if (null == mEglSurface || EGL10.EGL_NO_SURFACE == mEglSurface) {
             throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
@@ -147,23 +141,14 @@ public class GLRenderThread extends Thread {
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, format, width, height, 0, format, GLES20.GL_UNSIGNED_BYTE, null);
     }
 
-    private void initTexture() {
-        GLES20.glEnable(GLES20.GL_TEXTURE_2D);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
+    int mTextureLoc;
 
-        createTexture(mWidth, mHeight, GLES20.GL_LUMINANCE, yTexture);
-        createTexture(mWidth >> 1, mHeight >> 1, GLES20.GL_LUMINANCE, uTexture);
-        createTexture(mWidth >> 1, mHeight >> 1, GLES20.GL_LUMINANCE, vTexture);
+    private void initTexture() {
+        GLES20.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 
         GLES20.glUseProgram(mProgram);
-        sampleYLoaction = GLES20.glGetUniformLocation(mProgram, "samplerY");
-        sampleULoaction = GLES20.glGetUniformLocation(mProgram, "samplerU");
-        sampleVLoaction = GLES20.glGetUniformLocation(mProgram, "samplerV");
-        GLES20.glUniform1i(sampleYLoaction, 0);
-        GLES20.glUniform1i(sampleULoaction, 1);
-        GLES20.glUniform1i(sampleVLoaction, 2);
+        mTextureLoc = GLES20.glGetUniformLocation(mProgram, "uTexture");
+
         int aPostionLocation = GLES20.glGetAttribLocation(mProgram, "aPosition");
         int aTextureCoordLocation = GLES20.glGetAttribLocation(mProgram, "aTextureCoord");
         GLES20.glEnableVertexAttribArray(aPostionLocation);
@@ -184,34 +169,6 @@ public class GLRenderThread extends Thread {
 
         GLES20.glUseProgram(mProgram);
 
-        //=================================
-        synchronized (syncBuff) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, yTexture[0]);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
-                    mWidth,
-                    mHeight,
-                    GLES20.GL_LUMINANCE,
-                    GLES20.GL_UNSIGNED_BYTE,
-                    yBuf);
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, uTexture[0]);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
-                    mWidth >> 1,
-                    mHeight >> 1,
-                    GLES20.GL_LUMINANCE,
-                    GLES20.GL_UNSIGNED_BYTE,
-                    uBuf);
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, vTexture[0]);
-            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0,
-                    mWidth >> 1,
-                    mHeight >> 1,
-                    GLES20.GL_LUMINANCE,
-                    GLES20.GL_UNSIGNED_BYTE,
-                    vBuf);
-
-        }
         //=================================
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, drawIndices.length, GLES20.GL_UNSIGNED_SHORT, mDrawIndicesBuffer);
         GLES20.glFinish();
@@ -238,6 +195,16 @@ public class GLRenderThread extends Thread {
          */
         initTexture();
         while (!quit) {
+            synchronized (syncThread) {
+                try {
+                    syncThread.wait();
+                } catch (InterruptedException ignored) {
+                }
+            }
+            mCamTexture.updateTexImage();
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCamTextureId);
+            GLES20.glUniform1i(mTextureLoc, 0);
             /**
              * 绘制
              */
@@ -246,28 +213,9 @@ public class GLRenderThread extends Thread {
                 throw new RuntimeException("eglSwapBuffers,failed!");
             }
             Log.e("aa", "drawFrame");
-            synchronized (syncThread) {
-                try {
-                    syncThread.wait();
-                } catch (InterruptedException ignored) {
-                }
-            }
         }
     }
 
-    //像素Buff
-    private final Object syncBuff = new Object();
-    private ByteBuffer yBuf;
-    private ByteBuffer uBuf;
-    private ByteBuffer vBuf;
-
-    //纹理
-    private int[] yTexture = new int[1];
-    private int[] uTexture = new int[1];
-    private int[] vTexture = new int[1];
-    private int sampleYLoaction;
-    private int sampleULoaction;
-    private int sampleVLoaction;
 
     //形状顶点
     private FloatBuffer mSquareVerticesBuffer;
