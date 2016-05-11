@@ -2,11 +2,13 @@ package me.lake.gleslab;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
+import android.media.MediaMuxer;
 import android.opengl.EGL14;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
+import android.view.Surface;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -27,6 +29,7 @@ public class GLRenderThread extends Thread {
     EGLDisplay mEglDisplay;
     EGLConfig mEglConfig;
     EGLSurface mEglSurface;
+    EGLSurface mMediaCodecSurface;
     EGLContext mEglContext;
     int mProgram;
 
@@ -34,19 +37,22 @@ public class GLRenderThread extends Thread {
     int mCamTextureId;
     SurfaceTexture mCamTexture;
     SurfaceTexture mDrawTexture;
+    Surface mediaInputSurface;
     Context mContext;
     boolean quit;
 
     int sw, sh;
     private final Object syncThread = new Object();
+    MediaCodecCore mediaCodecCore;
 
-
-    public GLRenderThread(Context context, int camTextureId,SurfaceTexture camTexture, SurfaceTexture drawTexture) {
+    public GLRenderThread(Context context, int camTextureId, SurfaceTexture camTexture, SurfaceTexture drawTexture) {
         mDrawTexture = drawTexture;
         mCamTexture = camTexture;
         mCamTextureId = camTextureId;
         mContext = context;
         quit = false;
+        mediaCodecCore = new MediaCodecCore();
+        mediaInputSurface = mediaCodecCore.init();
     }
 
     public void quit() {
@@ -84,6 +90,7 @@ public class GLRenderThread extends Thread {
                 EGL10.EGL_RED_SIZE, 8,
                 EGL10.EGL_GREEN_SIZE, 8,
                 EGL10.EGL_BLUE_SIZE, 8,
+                0x3142, 1,
                 EGL10.EGL_DEPTH_SIZE, 0,
                 EGL10.EGL_STENCIL_SIZE, 0,
                 EGL10.EGL_NONE
@@ -96,7 +103,11 @@ public class GLRenderThread extends Thread {
         int[] surfaceAttribs = {
                 EGL14.EGL_NONE
         };
-        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mDrawTexture, surfaceAttribs);
+//        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mDrawTexture, surfaceAttribs);
+//        if (null == mEglSurface || EGL10.EGL_NO_SURFACE == mEglSurface) {
+//            throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
+//        }
+        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mediaInputSurface, surfaceAttribs);
         if (null == mEglSurface || EGL10.EGL_NO_SURFACE == mEglSurface) {
             throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
         }
@@ -178,6 +189,7 @@ public class GLRenderThread extends Thread {
 
     @Override
     public void run() {
+        mediaCodecCore.start();
         /**
          * 初始化GLES环境
          */
@@ -214,6 +226,7 @@ public class GLRenderThread extends Thread {
             }
             Log.e("aa", "drawFrame");
         }
+        mediaCodecCore.stop();
     }
 
 
