@@ -72,7 +72,6 @@ public class MediaCodecCore {
                             mediaMuxer.start();
                             break;
                         case MediaCodec.INFO_TRY_AGAIN_LATER:
-                            Log.e("aa", "dstVideoEncoder,INFO_TRY_AGAIN_LATER");
                             break;
                         default:
                             Log.e("aa", "getframe,size=" + einfo.size + ";time=" + einfo.presentationTimeUs + ";flag=" + einfo.flags + ";offset=" + einfo.offset);
