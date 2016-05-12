@@ -146,7 +146,7 @@ public class MediaRenderThread extends Thread {
 
     private void initMediaTexture() {
         GLES20.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-//        camTexId = MainActivity.createTexture();
+        camTexId = MainActivity.createTexture();
 
         GLES20.glUseProgram(mediaWapper.mProgram);
         mediaWapper.mTextureLoc = GLES20.glGetUniformLocation(mediaWapper.mProgram, "uTexture");
@@ -193,7 +193,6 @@ public class MediaRenderThread extends Thread {
         initVertex();
         mediaWapper.mProgram = ProgramTools.createProgram(mContext, R.raw.vertexshader, R.raw.fragmentshader_grey);
         initMediaTexture();
-        Log.e("aa", "mpro=" + mediaWapper.mProgram + "loc=" + mediaWapper.mTextureLoc);
         while (!quit) {
             synchronized (syncThread) {
                 try {
@@ -201,53 +200,38 @@ public class MediaRenderThread extends Thread {
                 } catch (InterruptedException ignored) {
                 }
             }
+            if (quit) {
+                break;
+            }
             //media
-            long a=System.currentTimeMillis();
-            Log.e("aa","M1="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             currentMedia();
-            Log.e("aa","M2="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             mCamTexture.attachToGLContext(camTexId);
             mCamTexture.updateTexImage();
-            Log.e("aa","tttttttt1="+mCamTexture.getTimestamp());
-            Log.e("aa","M3="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             GLES20.glUseProgram(mediaWapper.mProgram);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, camTexId);
             GLES20.glUniform1i(mediaWapper.mTextureLoc, 0);
             GLES20.glEnableVertexAttribArray(mediaWapper.aPostionLocation);
             GLES20.glEnableVertexAttribArray(mediaWapper.aTextureCoordLocation);
-            Log.e("aa","M4="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             drawFrame();
-            Log.e("aa","M5="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             mCamTexture.detachFromGLContext();
-            Log.e("aa","M6="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             synchronized (syncThread2) {
                 syncThread2.notify();
             }
-            Log.e("aa","M7="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
             GLES20.glDisableVertexAttribArray(mediaWapper.aPostionLocation);
             GLES20.glDisableVertexAttribArray(mediaWapper.aTextureCoordLocation);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
             GLES20.glUseProgram(0);
-            Log.e("aa","M8="+(System.currentTimeMillis()-a));
-            a=System.currentTimeMillis();
-            EGLExt.eglPresentationTimeANDROID(mediaWapper.mEglDisplay, mediaWapper.mEglSurface, System.currentTimeMillis()*1000);
+            EGLExt.eglPresentationTimeANDROID(mediaWapper.mEglDisplay, mediaWapper.mEglSurface, System.currentTimeMillis() * 1000);
             if (!EGL14.eglSwapBuffers(mediaWapper.mEglDisplay, mediaWapper.mEglSurface)) {
                 throw new RuntimeException("eglSwapBuffers,failed!");
             }
-            Log.e("aa","M9="+(System.currentTimeMillis()-a));
             Log.e("aa", "drawFrame=");
         }
         mediaCodecCore.stop();
     }
-    int i=0;
+
+    int i = 0;
 
     public void waitme() {
         synchronized (syncThread2) {

@@ -50,7 +50,7 @@ public class MediaCodecCore {
     int videoindex;
 
     public void start() {
-        started= true;
+        started = true;
         mediaEncoder.start();
         workThread = new Thread() {
             private ByteBuffer[] dstVideoEncoderOBuffers;
@@ -94,6 +94,7 @@ public class MediaCodecCore {
         };
         workThread.start();
     }
+
 
     public void stop() {
         started = false;
