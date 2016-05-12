@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         cam.setParameters(parameters);
 
         cam.startPreview();
+        texture.detachFromGLContext();
     }
 
     @Override
