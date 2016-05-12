@@ -7,6 +7,6 @@ uniform samplerExternalOES uTexture;
 void main()
 {
     vec4  color = texture2D(uTexture, vTextureCoord);
-    color.g*=1.5;
+    color.g*=1.0;
     gl_FragColor = color;
 }

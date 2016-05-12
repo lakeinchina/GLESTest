@@ -26,7 +26,7 @@ public class MediaCodecCore {
     public Surface init() {
         MediaFormat videoFormat = MediaFormat.createVideoFormat("video/avc", 1280, 720);
         videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, 1572864);
+        videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, 2000000);
         videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
         videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 5);
         try {
@@ -50,6 +50,7 @@ public class MediaCodecCore {
     int videoindex;
 
     public void start() {
+        started= true;
         mediaEncoder.start();
         workThread = new Thread() {
             private ByteBuffer[] dstVideoEncoderOBuffers;

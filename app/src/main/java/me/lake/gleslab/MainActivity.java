@@ -15,7 +15,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     int w = 1280;
     int h = 720;
     TextureView txv_image;
-    GLRenderThread glRenderThread;
+    ScreenRenderThread screenRenderThread;
     int textureId;
     SurfaceTexture camTexture;
 
@@ -32,26 +32,26 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        glRenderThread = new GLRenderThread(this, textureId, camTexture, surface);
-        glRenderThread.setWH(width, height);
-        glRenderThread.start();
+        screenRenderThread = new ScreenRenderThread(this, textureId, camTexture, surface);
+        screenRenderThread.setWH(width, height);
+        screenRenderThread.start();
         startCamera(camTexture);
         Log.e("aa", "onSurfaceTextureAvailable");
     }
 
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-        glRenderThread.setWH(width, height);
+        screenRenderThread.setWH(width, height);
         Log.e("aa", "onSurfaceTextureSizeChanged");
     }
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
         Log.e("aa", "onSurfaceTextureDestroyed");
-        glRenderThread.quit();
+        screenRenderThread.quit();
         stopCamera();
         try {
-            glRenderThread.join();
+            screenRenderThread.join();
         } catch (InterruptedException ignored) {
         }
         return true;
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
         Log.e("aa", "onFrameAvailable");
-        glRenderThread.queue();
+        screenRenderThread.queue();
     }
 
     private void stopCamera() {
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         cam.release();
     }
 
-    private int createTexture() {
+    public static int createTexture() {
         int[] textureHandle = new int[1];
         GLES20.glGenTextures(1, textureHandle, 0);
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureHandle[0]);

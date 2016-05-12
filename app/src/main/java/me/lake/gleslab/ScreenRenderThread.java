@@ -2,8 +2,12 @@ package me.lake.gleslab;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
-import android.media.MediaMuxer;
 import android.opengl.EGL14;
+import android.opengl.EGLConfig;
+import android.opengl.EGLContext;
+import android.opengl.EGLDisplay;
+import android.opengl.EGLExt;
+import android.opengl.EGLSurface;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
@@ -15,44 +19,30 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.egl.EGLContext;
-import javax.microedition.khronos.egl.EGLDisplay;
-import javax.microedition.khronos.egl.EGLSurface;
 
 /**
  * Created by lake on 16-4-28.
  */
-public class GLRenderThread extends Thread {
-    EGL10 mEgl;
-    EGLDisplay mEglDisplay;
-    EGLConfig mEglConfig;
-    EGLSurface mEglSurface;
-    EGLSurface mMediaCodecSurface;
-    EGLContext mEglContext;
-    int mProgram;
-
+public class ScreenRenderThread extends Thread {
 
     int mCamTextureId;
     SurfaceTexture mCamTexture;
     SurfaceTexture mDrawTexture;
-    Surface mediaInputSurface;
     Context mContext;
     boolean quit;
 
     int sw, sh;
     private final Object syncThread = new Object();
-    MediaCodecCore mediaCodecCore;
+    private MediaRenderThread mediaRenderThread;
 
-    public GLRenderThread(Context context, int camTextureId, SurfaceTexture camTexture, SurfaceTexture drawTexture) {
+    public ScreenRenderThread(Context context, int camTextureId, SurfaceTexture camTexture, SurfaceTexture drawTexture) {
         mDrawTexture = drawTexture;
         mCamTexture = camTexture;
         mCamTextureId = camTextureId;
         mContext = context;
         quit = false;
-        mediaCodecCore = new MediaCodecCore();
-        mediaInputSurface = mediaCodecCore.init();
+        screenWapper = new ScreenWapper();
+        mediaRenderThread = new MediaRenderThread(context,camTextureId);
     }
 
     public void quit() {
@@ -65,6 +55,7 @@ public class GLRenderThread extends Thread {
     public void setWH(int w, int h) {
         sw = w;
         sh = h;
+        mediaRenderThread.setWH(w,h);
     }
 
     public void queue() {
@@ -73,54 +64,49 @@ public class GLRenderThread extends Thread {
         }
     }
 
-    private void initGLES() {
-        mEgl = (EGL10) EGLContext.getEGL();
-        mEglDisplay = mEgl.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
-        if (EGL10.EGL_NO_DISPLAY == mEglDisplay) {
-            throw new RuntimeException("eglGetDisplay,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
+
+    private void initScreenGLES() {
+        screenWapper.mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
+        if (EGL14.EGL_NO_DISPLAY == screenWapper.mEglDisplay) {
+            throw new RuntimeException("eglGetDisplay,failed:" + GLUtils.getEGLErrorString(EGL14.eglGetError()));
         }
         int versions[] = new int[2];
-        if (!mEgl.eglInitialize(mEglDisplay, versions)) {
-            throw new RuntimeException("eglInitialize,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
+        if (!EGL14.eglInitialize(screenWapper.mEglDisplay, versions, 0, versions, 1)) {
+            throw new RuntimeException("eglInitialize,failed:" + GLUtils.getEGLErrorString(EGL14.eglGetError()));
         }
         int configsCount[] = new int[1];
         EGLConfig configs[] = new EGLConfig[1];
         int configSpec[] = new int[]{
-                EGL10.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
-                EGL10.EGL_RED_SIZE, 8,
-                EGL10.EGL_GREEN_SIZE, 8,
-                EGL10.EGL_BLUE_SIZE, 8,
-                0x3142, 1,
-                EGL10.EGL_DEPTH_SIZE, 0,
-                EGL10.EGL_STENCIL_SIZE, 0,
-                EGL10.EGL_NONE
+                EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+                EGL14.EGL_RED_SIZE, 8,
+                EGL14.EGL_GREEN_SIZE, 8,
+                EGL14.EGL_BLUE_SIZE, 8,
+                EGL14.EGL_DEPTH_SIZE, 0,
+                EGL14.EGL_STENCIL_SIZE, 0,
+                EGL14.EGL_NONE
         };
-        mEgl.eglChooseConfig(mEglDisplay, configSpec, configs, 1, configsCount);
+        EGL14.eglChooseConfig(screenWapper.mEglDisplay, configSpec, 0, configs, 0, 1, configsCount, 0);
         if (configsCount[0] <= 0) {
-            throw new RuntimeException("eglChooseConfig,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
+            throw new RuntimeException("eglChooseConfig,failed:" + GLUtils.getEGLErrorString(EGL14.eglGetError()));
         }
-        mEglConfig = configs[0];
+        screenWapper.mEglConfig = configs[0];
         int[] surfaceAttribs = {
                 EGL14.EGL_NONE
         };
-//        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mDrawTexture, surfaceAttribs);
-//        if (null == mEglSurface || EGL10.EGL_NO_SURFACE == mEglSurface) {
-//            throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
-//        }
-        mEglSurface = mEgl.eglCreateWindowSurface(mEglDisplay, mEglConfig, mediaInputSurface, surfaceAttribs);
-        if (null == mEglSurface || EGL10.EGL_NO_SURFACE == mEglSurface) {
-            throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
-        }
         int contextSpec[] = new int[]{
                 EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
                 EGL14.EGL_NONE
         };
-        mEglContext = mEgl.eglCreateContext(mEglDisplay, mEglConfig, EGL10.EGL_NO_CONTEXT, contextSpec);
-        if (EGL10.EGL_NO_CONTEXT == mEglContext) {
-            throw new RuntimeException("eglCreateContext,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
+        screenWapper.mEglContext = EGL14.eglCreateContext(screenWapper.mEglDisplay, screenWapper.mEglConfig, EGL14.EGL_NO_CONTEXT, contextSpec, 0);
+        if (EGL14.EGL_NO_CONTEXT == screenWapper.mEglContext) {
+            throw new RuntimeException("eglCreateContext,failed:" + GLUtils.getEGLErrorString(EGL14.eglGetError()));
         }
-        if (!mEgl.eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext)) {
-            throw new RuntimeException("eglMakeCurrent,failed:" + GLUtils.getEGLErrorString(mEgl.eglGetError()));
+        int[] values = new int[1];
+        EGL14.eglQueryContext(screenWapper.mEglDisplay, screenWapper.mEglContext, EGL14.EGL_CONTEXT_CLIENT_VERSION, values, 0);
+        Log.d("AA", "screenWapper,EGLContext created, client version " + values[0]);
+        screenWapper.mEglSurface = EGL14.eglCreateWindowSurface(screenWapper.mEglDisplay, screenWapper.mEglConfig, mDrawTexture, surfaceAttribs, 0);
+        if (null == screenWapper.mEglSurface || EGL14.EGL_NO_SURFACE == screenWapper.mEglSurface) {
+            throw new RuntimeException("eglCreateWindowSurface,failed:" + GLUtils.getEGLErrorString(EGL14.eglGetError()));
         }
     }
 
@@ -152,22 +138,23 @@ public class GLRenderThread extends Thread {
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, format, width, height, 0, format, GLES20.GL_UNSIGNED_BYTE, null);
     }
 
-    int mTextureLoc;
 
-    private void initTexture() {
+    int camTexId;
+    private void initScreenTexture() {
         GLES20.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+//        camTexId = MainActivity.createTexture();
 
-        GLES20.glUseProgram(mProgram);
-        mTextureLoc = GLES20.glGetUniformLocation(mProgram, "uTexture");
+        GLES20.glUseProgram(screenWapper.mProgram);
+        screenWapper.mTextureLoc = GLES20.glGetUniformLocation(screenWapper.mProgram, "uTexture");
 
-        int aPostionLocation = GLES20.glGetAttribLocation(mProgram, "aPosition");
-        int aTextureCoordLocation = GLES20.glGetAttribLocation(mProgram, "aTextureCoord");
-        GLES20.glEnableVertexAttribArray(aPostionLocation);
-        GLES20.glVertexAttribPointer(aPostionLocation, COORDS_PER_VERTEX,
+        screenWapper.aPostionLocation = GLES20.glGetAttribLocation(screenWapper.mProgram, "aPosition");
+        screenWapper.aTextureCoordLocation = GLES20.glGetAttribLocation(screenWapper.mProgram, "aTextureCoord");
+        GLES20.glEnableVertexAttribArray(screenWapper.aPostionLocation);
+        GLES20.glVertexAttribPointer(screenWapper.aPostionLocation, COORDS_PER_VERTEX,
                 GLES20.GL_FLOAT, false,
                 COORDS_PER_VERTEX * 4, mSquareVerticesBuffer);
-        GLES20.glEnableVertexAttribArray(aTextureCoordLocation);
-        GLES20.glVertexAttribPointer(aTextureCoordLocation, TEXTURE_COORS_PER_VERTEX,
+        GLES20.glEnableVertexAttribArray(screenWapper.aTextureCoordLocation);
+        GLES20.glVertexAttribPointer(screenWapper.aTextureCoordLocation, TEXTURE_COORS_PER_VERTEX,
                 GLES20.GL_FLOAT, false,
                 TEXTURE_COORS_PER_VERTEX * 4, mTextureVerticesBuffer);
 
@@ -177,35 +164,31 @@ public class GLRenderThread extends Thread {
         GLES20.glViewport(0, 0, sw, sh);
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-
-        GLES20.glUseProgram(mProgram);
-
         //=================================
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, drawIndices.length, GLES20.GL_UNSIGNED_SHORT, mDrawIndicesBuffer);
         GLES20.glFinish();
-//        GLES20.glDisableVertexAttribArray(aPostionLocation);
-//        GLES20.glDisableVertexAttribArray(aTextureCoordLocation);
+    }
+
+    private void currentScreen() {
+        if (!EGL14.eglMakeCurrent(screenWapper.mEglDisplay, screenWapper.mEglSurface, screenWapper.mEglSurface, screenWapper.mEglContext)) {
+            throw new RuntimeException("eglMakeCurrent,failed:" + GLUtils.getEGLErrorString(EGL14.eglGetError()));
+        }
     }
 
     @Override
     public void run() {
-        mediaCodecCore.start();
+
         /**
          * 初始化GLES环境
          */
-        initGLES();
-        /**
-         * 创建program
-         */
-        mProgram = ProgramTools.createProgram(mContext, R.raw.vertexshader, R.raw.fragmentshader_grey);
-        /**
-         * 创建顶点Buff
-         */
+        initScreenGLES();
+        mediaRenderThread.sharedContext= screenWapper.mEglContext;
+        mediaRenderThread.start();
+        currentScreen();
         initVertex();
-        /**
-         * 创建YUV纹理
-         */
-        initTexture();
+        screenWapper.mProgram = ProgramTools.createProgram(mContext, R.raw.vertexshader, R.raw.fragmentshader_grey);
+        initScreenTexture();
+        Log.e("aa","spro="+screenWapper.mProgram+"loc="+screenWapper.mTextureLoc);
         while (!quit) {
             synchronized (syncThread) {
                 try {
@@ -213,22 +196,28 @@ public class GLRenderThread extends Thread {
                 } catch (InterruptedException ignored) {
                 }
             }
+            currentScreen();
             mCamTexture.updateTexImage();
+            //screen
+            GLES20.glUseProgram(screenWapper.mProgram);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCamTextureId);
-            GLES20.glUniform1i(mTextureLoc, 0);
-            /**
-             * 绘制
-             */
+            GLES20.glUniform1i(screenWapper.mTextureLoc, 0);
+            GLES20.glEnableVertexAttribArray(screenWapper.aPostionLocation);
+            GLES20.glEnableVertexAttribArray(screenWapper.aTextureCoordLocation);
             drawFrame();
-            if (!mEgl.eglSwapBuffers(mEglDisplay, mEglSurface)) {
+            GLES20.glDisableVertexAttribArray(screenWapper.aPostionLocation);
+            GLES20.glDisableVertexAttribArray(screenWapper.aTextureCoordLocation);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
+            GLES20.glUseProgram(0);
+            if (!EGL14.eglSwapBuffers(screenWapper.mEglDisplay, screenWapper.mEglSurface)) {
                 throw new RuntimeException("eglSwapBuffers,failed!");
             }
+            mediaRenderThread.queue();
             Log.e("aa", "drawFrame");
         }
-        mediaCodecCore.stop();
+        mediaRenderThread.quit();
     }
-
 
     //形状顶点
     private FloatBuffer mSquareVerticesBuffer;
@@ -254,4 +243,18 @@ public class GLRenderThread extends Thread {
     private static int SHORT_SIZE_BYTES = 2;
     private static final int COORDS_PER_VERTEX = 3;
     private static final int TEXTURE_COORS_PER_VERTEX = 2;
+
+    private ScreenWapper screenWapper;
+
+    public class ScreenWapper {
+        EGLDisplay mEglDisplay;
+        EGLConfig mEglConfig;
+        EGLSurface mEglSurface;
+        EGLContext mEglContext;
+        int mProgram;
+        int mTextureLoc;
+        int aPostionLocation;
+        int aTextureCoordLocation;
+    }
+
 }
