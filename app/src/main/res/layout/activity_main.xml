@@ -7,16 +7,7 @@
 
     <TextureView
         android:id="@+id/txv_image"
-        android:layout_width="175dp"
-        android:layout_height="350dp"
-        android:layout_marginLeft="87.5dp"
-        android:layout_marginTop="-87.5dp"
-        android:rotation="270" />
-
-    <SurfaceView
-        android:id="@+id/sv_image"
-        android:layout_width="350dp"
-        android:layout_height="175dp"
-        android:layout_alignParentRight="true" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </RelativeLayout>
