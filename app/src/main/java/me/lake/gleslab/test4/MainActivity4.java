@@ -17,8 +17,7 @@ public class MainActivity4 extends AppCompatActivity implements TextureView.Surf
     int w = 1280;
     int h = 720;
     TextureView txv_image;
-
-    ScreenRenderThread screenRenderThread;
+    ScreenRenderThread4 screenRenderThread;
     int textureId;
     SurfaceTexture camTexture;
 

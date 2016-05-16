@@ -250,6 +250,12 @@ public class GLRenderThread2 extends Thread {
          */
         initTexture();
         while (!quit) {
+            synchronized (syncThread) {
+                try {
+                    syncThread.wait();
+                } catch (InterruptedException ignored) {
+                }
+            }
             /**
              * 绘制
              */
@@ -265,12 +271,6 @@ public class GLRenderThread2 extends Thread {
             int[] pixelArray = pixelBuffer.array();
             MainActivity2.toYV12(pixelArray,yuvpix,mWidth,mHeight);
             HomeActivity.ndkdraw(mSurface, yuvpix, mWidth, mHeight, size);
-            synchronized (syncThread) {
-                try {
-                    syncThread.wait();
-                } catch (InterruptedException ignored) {
-                }
-            }
         }
     }
 
