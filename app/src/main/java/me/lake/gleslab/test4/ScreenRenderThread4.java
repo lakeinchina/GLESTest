@@ -1,4 +1,4 @@
-package me.lake.gleslab;
+package me.lake.gleslab.test4;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
@@ -19,11 +19,14 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
+import me.lake.gleslab.ProgramTools;
+import me.lake.gleslab.R;
+
 
 /**
  * Created by lake on 16-4-28.
  */
-public class ScreenRenderThread extends Thread {
+public class ScreenRenderThread4 extends Thread {
 
     int mCamTextureId;
     SurfaceTexture mCamTexture;
@@ -36,7 +39,7 @@ public class ScreenRenderThread extends Thread {
     private final Object syncThread = new Object();
     MediaCodecCore mediaCodecCore;
 
-    public ScreenRenderThread(Context context, int camTextureId, SurfaceTexture camTexture, SurfaceTexture drawTexture) {
+    public ScreenRenderThread4(Context context, int camTextureId, SurfaceTexture camTexture, SurfaceTexture drawTexture) {
         mDrawTexture = drawTexture;
         mCamTexture = camTexture;
         mCamTextureId = camTextureId;
@@ -196,7 +199,7 @@ public class ScreenRenderThread extends Thread {
 
     private void initScreenTexture() {
         GLES20.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-        camSTexId = MainActivity.createTexture();
+        camSTexId = MainActivity4.createTexture();
 
         GLES20.glUseProgram(screenWapper.mProgram);
         screenWapper.mTextureLoc = GLES20.glGetUniformLocation(screenWapper.mProgram, "uTexture");
@@ -216,7 +219,7 @@ public class ScreenRenderThread extends Thread {
 
     private void initMediaTexture() {
         GLES20.glEnable(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-        camMTexId = MainActivity.createTexture();
+        camMTexId = MainActivity4.createTexture();
 
         GLES20.glUseProgram(mediaWapper.mProgram);
         mediaWapper.mTextureLoc = GLES20.glGetUniformLocation(mediaWapper.mProgram, "uTexture");
@@ -269,6 +272,8 @@ public class ScreenRenderThread extends Thread {
         currentMedia();
         mediaWapper.mProgram = ProgramTools.createProgram(mContext, R.raw.vertexshader, R.raw.fragmentshader);
         initMediaTexture();
+        currentScreen();
+        mCamTexture.attachToGLContext(camSTexId);
         while (!quit) {
             synchronized (syncThread) {
                 if (frameNum == 0) {
@@ -276,64 +281,61 @@ public class ScreenRenderThread extends Thread {
                         syncThread.wait();
                     } catch (InterruptedException ignored) {
                     }
+                } else if (frameNum >= 2) {
+//                    mCamTexture.attachToGLContext(camSTexId);
+                    for (int i = 0; i < (frameNum - 1); i++) {
+                        mCamTexture.updateTexImage();
+                    }
+//                    mCamTexture.detachFromGLContext();
+                    --frameNum;
                 }
             }
-            Log.e("aa", "dddddd1");
             long t = System.currentTimeMillis();
             currentScreen();
-            Log.e("aa", "dddddd2");
-            mCamTexture.attachToGLContext(camSTexId);
             mCamTexture.updateTexImage();
-            Log.e("aa", "dddddd3");
             //screen
             GLES20.glUseProgram(screenWapper.mProgram);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, camSTexId);
             GLES20.glUniform1i(screenWapper.mTextureLoc, 0);
             GLES20.glEnableVertexAttribArray(screenWapper.aPostionLocation);
-
             GLES20.glEnableVertexAttribArray(screenWapper.aTextureCoordLocation);
             GLES20.glViewport(0, 0, sw, sh);
             drawFrame();
+//            mCamTexture.detachFromGLContext();
             GLES20.glDisableVertexAttribArray(screenWapper.aPostionLocation);
             GLES20.glDisableVertexAttribArray(screenWapper.aTextureCoordLocation);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
             GLES20.glUseProgram(0);
-            Log.e("aa", "dddddd4");
             if (!EGL14.eglSwapBuffers(screenWapper.mEglDisplay, screenWapper.mEglSurface)) {
                 throw new RuntimeException("eglSwapBuffers,failed!");
             }
-            mCamTexture.detachFromGLContext();
             //media
-            Log.e("aa", "dddddd5");
             currentMedia();
-            mCamTexture.attachToGLContext(camMTexId);
-            mCamTexture.updateTexImage();
-            Log.e("aa", "dddddd6");
+//            mCamTexture.attachToGLContext(camSTexId);
+//            mCamTexture.updateTexImage();
             GLES20.glUseProgram(mediaWapper.mProgram);
             GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, camMTexId);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, camSTexId);
             GLES20.glUniform1i(mediaWapper.mTextureLoc, 0);
             GLES20.glEnableVertexAttribArray(mediaWapper.aPostionLocation);
             GLES20.glEnableVertexAttribArray(mediaWapper.aTextureCoordLocation);
             drawFrame();
-            Log.e("aa", "dddddd7");
-            mCamTexture.detachFromGLContext();
             GLES20.glDisableVertexAttribArray(mediaWapper.aPostionLocation);
             GLES20.glDisableVertexAttribArray(mediaWapper.aTextureCoordLocation);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
             GLES20.glUseProgram(0);
             EGLExt.eglPresentationTimeANDROID(mediaWapper.mEglDisplay, mediaWapper.mEglSurface, mCamTexture.getTimestamp());
-            Log.e("aa", "ttt" + mCamTexture.getTimestamp());
             if (!EGL14.eglSwapBuffers(mediaWapper.mEglDisplay, mediaWapper.mEglSurface)) {
                 throw new RuntimeException("eglSwapBuffers,failed!");
             }
             synchronized (syncThread) {
                 frameNum--;
             }
-            Log.e("aa", "dddddd8");
             Log.e("aa", "sdrawFrame=" + (System.currentTimeMillis() - t));
         }
+        currentScreen();
+        mCamTexture.detachFromGLContext();
         mediaCodecCore.stop();
     }
 

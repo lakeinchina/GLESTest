@@ -1,4 +1,4 @@
-package me.lake.gleslab;
+package me.lake.gleslab.test4;
 
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
@@ -11,18 +11,20 @@ import android.view.TextureView;
 
 import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity implements TextureView.SurfaceTextureListener, SurfaceTexture.OnFrameAvailableListener {
+import me.lake.gleslab.R;
+
+public class MainActivity4 extends AppCompatActivity implements TextureView.SurfaceTextureListener, SurfaceTexture.OnFrameAvailableListener {
     int w = 1280;
     int h = 720;
     TextureView txv_image;
-    ScreenRenderThread screenRenderThread;
+    ScreenRenderThread4 screenRenderThread;
     int textureId;
     SurfaceTexture camTexture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main4);
         txv_image = (TextureView) findViewById(R.id.txv_image);
         txv_image.setSurfaceTextureListener(this);
         textureId = createTexture();
@@ -32,10 +34,10 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        screenRenderThread = new ScreenRenderThread(this, textureId, camTexture, surface);
+        startCamera(camTexture);
+        screenRenderThread = new ScreenRenderThread4(this, textureId, camTexture, surface);
         screenRenderThread.setWH(width, height);
         screenRenderThread.start();
-        startCamera(camTexture);
         Log.e("aa", "onSurfaceTextureAvailable");
     }
 
@@ -87,9 +89,12 @@ public class MainActivity extends AppCompatActivity implements TextureView.Surfa
         texture.detachFromGLContext();
     }
 
+    long lastT;
+
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        Log.e("aa", "onFrameAvailable");
+        Log.e("aa", "onFrameAvailable" + (System.currentTimeMillis() - lastT));
+        lastT = System.currentTimeMillis();
         screenRenderThread.queue();
     }
 
