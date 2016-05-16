@@ -17,7 +17,8 @@ public class MainActivity4 extends AppCompatActivity implements TextureView.Surf
     int w = 1280;
     int h = 720;
     TextureView txv_image;
-    ScreenRenderThread4 screenRenderThread;
+
+    ScreenRenderThread screenRenderThread;
     int textureId;
     SurfaceTexture camTexture;
 
@@ -84,6 +85,7 @@ public class MainActivity4 extends AppCompatActivity implements TextureView.Surf
         parameters.setPreviewFpsRange(30000,
                 30000);
         cam.setParameters(parameters);
+
 
         cam.startPreview();
         texture.detachFromGLContext();
