@@ -35,6 +35,18 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="displayTexutreOES_Mediacodec_Inputsurface" />
+
+        <Button
+            android:id="@+id/btn_display_texutreOES_mediacodec_complex"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="displayTexutreOES_Mediacodec_Complex" />
+
+        <Button
+            android:id="@+id/btn_framebuffer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="framebuffer" />
     </LinearLayout>
 
 </FrameLayout>

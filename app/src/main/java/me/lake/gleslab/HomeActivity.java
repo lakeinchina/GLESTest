@@ -11,6 +11,8 @@ import me.lake.gleslab.test1.MainActivity1;
 import me.lake.gleslab.test2.MainActivity2;
 import me.lake.gleslab.test3.MainActivity3;
 import me.lake.gleslab.test4.MainActivity4;
+import me.lake.gleslab.test5.MainActivity5;
+import me.lake.gleslab.test6.MainActivity6;
 
 /**
  * Created by lake on 16-5-16.
@@ -43,6 +45,18 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(HomeActivity.this, MainActivity4.class));
+            }
+        });
+        findViewById(R.id.btn_display_texutreOES_mediacodec_complex).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(HomeActivity.this, MainActivity5.class));
+            }
+        });
+        findViewById(R.id.btn_framebuffer).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(HomeActivity.this, MainActivity6.class));
             }
         });
     }
