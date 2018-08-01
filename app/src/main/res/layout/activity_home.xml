@@ -47,6 +47,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="framebuffer" />
+
+        <Button
+            android:id="@+id/btn_EGL_KHR_IMAGE"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="EGL_KHR_IMAGE" />
     </LinearLayout>
 
 </FrameLayout>

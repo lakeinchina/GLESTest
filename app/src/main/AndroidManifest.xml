@@ -48,6 +48,9 @@
         <activity android:name=".test6.MainActivity6"
             android:screenOrientation="landscape">
         </activity>
+        <activity android:name=".test7.MainActivity7"
+            android:screenOrientation="portrait">
+        </activity>
     </application>
 
 </manifest>
